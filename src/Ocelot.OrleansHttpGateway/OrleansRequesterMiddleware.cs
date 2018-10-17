@@ -78,7 +78,13 @@ namespace Ocelot.OrleansHttpGateway
             try
             {
                 //Orleans injects the DownstreamContext into the RequestContext when requested
-                this._config.RequestContextInjection?.Invoke(context);
+                var injected = this._config.RequestContextInjection?.Invoke(context);
+                if(injected.IsError)
+                {
+                    Logger.LogDebug(injected.Data);
+                    SetPipelineError(context, injected.Errors);
+                    return;
+                }
             }
             catch (Exception ex)
             {

@@ -3,10 +3,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using Ocelot;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Ocelot.OrleansHttpGateway.Configuration;
 using Ocelot.OrleansHttpGateway.Requester;
+using Ocelot.Responses;
 using Orleans.Hosting;
 using System;
 using System.IO;
@@ -57,6 +59,7 @@ namespace OcelotOrleans.AspNetCore
                             Orleans.Runtime.RequestContext.Set("Client-IP", context.HttpContext.Connection.RemoteIpAddress.ToString());
                             if (context.HttpContext.Request.Headers.TryGetValue("Authorization", out StringValues value))
                                 Orleans.Runtime.RequestContext.Set("Authorization", value);
+                            return new OkResponse<string>("");
                         };
                         config.ServiceDiscoveryConfig = (con, build) =>
                         {

@@ -1,6 +1,7 @@
 ﻿using Ocelot.Configuration;
 using Ocelot.Middleware;
 using Ocelot.OrleansHttpGateway.Model;
+using Ocelot.Responses;
 using Orleans;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ namespace Ocelot.OrleansHttpGateway.Configuration
         {
             MapRouteToGraininterface = (route) => route.GrainName;
         }
-        public Action<DownstreamContext> RequestContextInjection { get; set; }
+        public Func<DownstreamContext, Response<string>> RequestContextInjection { get; set; }
 
         public Func<GrainRouteValues, string> MapRouteToGraininterface { get; set; }
 
