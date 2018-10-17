@@ -44,12 +44,32 @@ namespace Ocelot.OrleansHttpGateway.Requester
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message, ex);
+                _logger.LogError($"Binding parameter failed", ex);
                 return new ErrorResponse<OrleansResponseMessage>(new UnknownError(ex.Message));
             }
+            try
+            {
+                return await this.Invoke(executor, grain, parameters);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Request {grain.GrainType.Name} Orleans failed,", ex);
+                if (ex.InnerException != null && ex.InnerException is Orleans.Runtime.OrleansMessageRejectionException)
+                {
+                    await Task.Delay(1);
+                    return await this.Invoke(executor, grain, parameters);
+                }
+                throw ex;
+            }
+        }
+
+        private async Task<Response<OrleansResponseMessage>> Invoke(ObjectMethodExecutor executor, GrainReference grain, object[] parameters)
+        {
+
             var result = await this.ExecuteAsync(executor, grain, parameters);
             var message = new OrleansResponseMessage(new OrleansContent(result, this._jsonSerializer), HttpStatusCode.OK);
             return new OkResponse<OrleansResponseMessage>(message);
+
         }
 
         private object[] GetParameters(ObjectMethodExecutor executor, GrainRouteValues route)
@@ -65,7 +85,11 @@ namespace Ocelot.OrleansHttpGateway.Requester
             ExceptionDispatchInfo lastException = null;
             try
             {
-                return _parameterBinder.BindParameters(executor.MethodParameters, route);
+                var param = _parameterBinder.BindParameters(executor.MethodParameters, route);
+                if (param.Length == executor.MethodParameters.Length)
+                    return param;
+                else
+                    throw new UnableToFindDownstreamRouteException("The request parameter is inconsistent with the parameter that executes the action.");
             }
             catch (Exception ex)
             {

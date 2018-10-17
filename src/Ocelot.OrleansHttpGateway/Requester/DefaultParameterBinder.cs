@@ -24,7 +24,6 @@ namespace Ocelot.OrleansHttpGateway.Requester
             if (parameters == null || parameters.Length <= 0)
                 return Array.Empty<object>();
 
-
             var result = new object[parameters.Length];
             for (int i = 0; i < parameters.Length; i++)
             {
@@ -37,10 +36,16 @@ namespace Ocelot.OrleansHttpGateway.Requester
                         value = this.BindClassType(param, routeValues.Body);
                     }
                     else
+                    {
                         value = this.BindPrimitiveType(param, routeValues.Querys, routeValues.Body);
-
-                    if (value == null)
-                        return new object[0];
+                        if (value == null)
+                        {
+                            if (param.HasDefaultValue)
+                                value = param.DefaultValue;
+                            else
+                                return new object[0];
+                        }
+                    }
 
                     result[i] = value;
                 }
@@ -55,21 +60,22 @@ namespace Ocelot.OrleansHttpGateway.Requester
 
         public object BindPrimitiveType(ParameterInfo parameter, IQueryCollection queryData, JObject bodyData)
         {
+            
             if (queryData.TryGetValue(parameter.Name, out StringValues value))
             {
                 return Convert(value, parameter.ParameterType);
             }
-            else if (bodyData.TryGetValue(parameter.Name, StringComparison.OrdinalIgnoreCase, out JToken qvalue))
-            {
-                return qvalue.ToObject(parameter.ParameterType, _serializer);
-            }
             else
-                return null;
+            {
+                return this.BindClassType(parameter, bodyData);
+            }
         }
 
 
         public object BindClassType(ParameterInfo parameter, JObject bodyData)
         {
+            if (bodyData == null)
+                return null;
             if (bodyData.HasValues && bodyData.TryGetValue(parameter.Name, StringComparison.OrdinalIgnoreCase, out JToken qvalue))
             {
                 return qvalue.ToObject(parameter.ParameterType, _serializer);
